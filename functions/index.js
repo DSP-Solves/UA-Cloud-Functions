@@ -244,7 +244,7 @@ function prepStageTwo(stageOneData) {
 }
 
 exports.updateCredsUIMS = functions
-	.region("asia-northeast1")
+	.region("asia-east2")
 	.runWith({ timeoutSeconds: 10, memory: "128MB" })
 	.https.onCall(async (data, context) => {
 		if (context.auth && context.auth.uid) {
@@ -263,7 +263,7 @@ exports.updateCredsUIMS = functions
 	});
 
 exports.fetchAttendanceV2 = functions
-	.region("asia-northeast1")
+	.region("asia-east2")
 	.runWith({ timeoutSeconds: 30, memory: "512MB" })
 	.https.onCall(async (data, context) => {
 		if (context.auth && context.auth.uid) {
