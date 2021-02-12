@@ -153,9 +153,21 @@ async function logoutFromUIMS() {
 async function scrapeAttendance() {
 	try {
 		await page.goto(
-			"https://uims.cuchd.in/UIMS/frmStudentCourseWiseAttendanceSummary.aspx",
+			"https://uims.cuchd.in/UIMS/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==",
 			{ waitUntil: "domcontentloaded" }
 		);
+
+		// await page.click(
+		// 	"#\\33 563 > li:nth-child(2) > a"
+		// );
+
+		// const [button] = await page.$x(`//*[@id="3563"]/li[2]/a[contains(., 'My Attendance')]`);
+		
+		// if (button) {
+		// 		await button.click();
+		// } else {
+		// 	throw new Error("Attendance link not found");
+		// }
 
 		// data loads dynamically after the DOM has loaded, that's why, can't just rely on the above waitUntil
 		await page.waitForFunction(
