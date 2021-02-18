@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const admin = require("firebase-admin");
 admin.initializeApp();
 const db = admin.firestore();
+const addHours = require("date-fns/addHours");
 
 // ACTUAL LOGIC STARTS HERE
 
@@ -162,7 +163,7 @@ async function scrapeAttendance() {
 		// );
 
 		// const [button] = await page.$x(`//*[@id="3563"]/li[2]/a[contains(., 'My Attendance')]`);
-		
+
 		// if (button) {
 		// 		await button.click();
 		// } else {
@@ -279,6 +280,29 @@ exports.fetchAttendanceV2 = functions
 	.runWith({ timeoutSeconds: 30, memory: "512MB" })
 	.https.onCall(async (data, context) => {
 		if (context.auth && context.auth.uid) {
+			const entitiesRef = db.collection("entities");
+			let userDoc, userEntityDocId;
+
+			const snapshot = await entitiesRef
+				.where("user", "==", context.auth.uid)
+				.get();
+
+			snapshot.forEach((doc) => {
+				if (!userDoc) {
+					const _ = doc.data();
+					if (doc.user === context.auth.id) {
+						userDoc = _;
+						userEntityDocId = doc.id;
+						return;
+					}
+				}
+			});
+
+			if (userDoc && userDoc.attendance && userDoc.expiry > Date.now())
+				return userDoc.attendance;
+
+			const userEntityRef = db.collection("entities");
+
 			return db
 				.collection("users")
 				.doc(context.auth.uid)
@@ -290,7 +314,9 @@ exports.fetchAttendanceV2 = functions
 							error: "uims creds not updated",
 						};
 					} else {
-						var uimsCreds = doc.data()["uims-creds"];
+						const userData = doc.data();
+						var uimsCreds = userData["uims-creds"];
+
 						if (uimsCreds && uimsCreds.uid && uimsCreds.pass)
 							return openBrowserMinimal()
 								.then(goToUIMS)
@@ -309,6 +335,25 @@ exports.fetchAttendanceV2 = functions
 									prepStageTwo(stageOnePrepped)
 								)
 								.then((stageTwoPrepped) => {
+									const preppedForFireStore = {
+										attendance: stageTwoPrepped,
+										expiry: addHours(
+											Date.now(),
+											userData.refreshInterval
+										).getTime(),
+										user: context.auth.uid,
+									};
+
+									if (userEntityDocId) {
+										userEntityRef
+											.doc(userEntityDocId)
+											.set(preppedForFireStore, {
+												merge: true,
+											});
+									} else {
+										userEntityRef.add(preppedForFireStore);
+									}
+
 									return stageTwoPrepped;
 								})
 								.catch((e) => {
